@@ -18,7 +18,10 @@
             <ColumnDefinition></ColumnDefinition>
         </Grid.ColumnDefinitions>
         <Grid Grid.ColumnSpan="3">
-            <TextBlock x:Name="Chat" TextWrapping="Wrap" Text="" />
+            <ScrollViewer>
+                <TextBlock x:Name="Chat" TextWrapping="Wrap" Text=""/>
+            </ScrollViewer>
+
         </Grid>
         <Grid Grid.Row="1" Grid.ColumnSpan="3">
             <TextBox x:Name="chatMessage_TextBox"></TextBox>
