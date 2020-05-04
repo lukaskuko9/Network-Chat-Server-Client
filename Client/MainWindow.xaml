@@ -1,0 +1,30 @@
+﻿<Window x:Class="ClientApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ClientApp"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"></RowDefinition>
+            <RowDefinition Height="50"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
+            <ColumnDefinition></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.ColumnSpan="3">
+            <TextBlock x:Name="Chat" TextWrapping="Wrap" Text="Text" />
+        </Grid>
+        <Grid Grid.Row="1" Grid.ColumnSpan="3">
+            <TextBox x:Name="chatMessage"></TextBox>
+        </Grid>
+        <Grid Grid.Row="1" Grid.Column="4" Grid.ColumnSpan="1">
+            <Button Grid.Column="3" Content="Send" Click="btn_Send"/>
+        </Grid>
+    </Grid>
+</Window>
