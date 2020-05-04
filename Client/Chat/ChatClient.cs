@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ClientApp;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -7,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace ServerClient
 {
-    public class MyClient
+    public class ChatClient
     {
 
-        public delegate void MessageDelegate(string str);
+        public delegate void MessageDelegate(ChatMessage chatMessage);
         public event MessageDelegate OnMessageReceived;
 
         TcpClient client;
         NetworkStream nwStream;
-        public MyClient()
+        public ChatClient()
         {
             client = new TcpClient();   
         }
@@ -26,7 +27,7 @@ namespace ServerClient
             nwStream = client.GetStream();
         }
 
-        public async Task Send(string msg)
+        public async Task SendAsync(string msg)
         {
             //---create a TCPClient object at the IP and port no.---
 
@@ -37,7 +38,7 @@ namespace ServerClient
             await nwStream.WriteAsync(bytesToSend, 0, bytesToSend.Length);
         }
 
-        public async Task Receive()
+        public async Task ReceiveAsync()
         {
             while (true)
             {
@@ -45,7 +46,9 @@ namespace ServerClient
                 int bytesRead =  await nwStream.ReadAsync(bytesToRead, 0, client.ReceiveBufferSize);
                 string msg = Encoding.ASCII.GetString(bytesToRead, 0, bytesRead);
                 Console.WriteLine("Received : " + msg);
-                OnMessageReceived(msg);
+
+                ChatMessage chatMessage = ChatMessage.GetMessageFromString(msg);
+                OnMessageReceived(chatMessage);
             }
         }
     }

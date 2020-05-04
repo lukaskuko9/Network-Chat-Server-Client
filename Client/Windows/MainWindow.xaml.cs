@@ -21,34 +21,36 @@ namespace ClientApp
     /// </summary>
     public partial class MainWindow : Window
     {
-        MyClient client = null;
+        ChatUser user = null;
 
-        public MainWindow(MyClient client)
+        public MainWindow(ChatUser client)
         { 
             InitializeComponent();
-            this.client = client;
+            user = client;
             receive();
         }
 
         private async void receive()
         {
-            this.client.OnMessageReceived += Client_OnMessageReceived;
-            await client.Receive();
+            this.user.Client.OnMessageReceived += Client_OnMessageReceived;
+            await user.Client.ReceiveAsync();
         }
 
-        private void Client_OnMessageReceived(string str)
+        private void Client_OnMessageReceived(ChatMessage chatMessage)
         {
-            Chat.Text += str + Environment.NewLine;
+            Chat.Text += chatMessage + Environment.NewLine;
         }
 
         private async void btn_Send(object sender, RoutedEventArgs e)
         {
-            string msg = chatMessage.Text;
+            string msg = chatMessage_TextBox.Text;
             if (msg == string.Empty)
                 return;
 
-            if (client != null)
-                await client.Send(msg);
+            ChatMessage chatMessage = new ChatMessage(user, msg);
+
+            if (user.Client != null)
+                await user.Client.SendAsync(ChatMessage.GetStringFromMessage(chatMessage));
         }
     }
 }

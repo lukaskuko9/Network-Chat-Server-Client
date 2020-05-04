@@ -19,11 +19,14 @@ namespace Server
 
         static void Main(string[] args)
         {
-            string serverip = args[0];
-            int port = Convert.ToInt32(args[1]);
-
-            serverip = "25.148.88.117";
-
+            string serverip = "127.0.0.1";
+            int port = 5000;
+            if (args.Length >= 1)
+            {
+                serverip = args[0];
+                port = Convert.ToInt32(args[1]);
+            }
+          
             server = new Server(serverip, port);
             Global.logger.WriteLine($"Starting server at {serverip}:{port}");
             server.StartListening();

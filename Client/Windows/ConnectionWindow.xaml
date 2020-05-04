@@ -12,6 +12,7 @@
             <RowDefinition Height="40"></RowDefinition>
             <RowDefinition Height="40"></RowDefinition>
             <RowDefinition Height="40"></RowDefinition>
+            <RowDefinition Height="40"></RowDefinition>
             <RowDefinition></RowDefinition>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -23,7 +24,7 @@
         </Grid.ColumnDefinitions>
         <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="40"></ColumnDefinition>
+                <ColumnDefinition Width="70"></ColumnDefinition>
                 <ColumnDefinition></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" VerticalAlignment="Center">IP</TextBlock>
@@ -31,13 +32,20 @@
         </Grid>
         <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="40"></ColumnDefinition>
+                <ColumnDefinition Width="70"></ColumnDefinition>
                 <ColumnDefinition></ColumnDefinition>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" VerticalAlignment="Center">Port</TextBlock>
             <TextBox x:Name="Port_TextBox" Grid.Column="1" VerticalContentAlignment="Center">5000</TextBox>
         </Grid>
-
-        <Button Grid.Row="3" Grid.Column="2" Height="40" VerticalAlignment="Bottom" Content="Connect" Click="btn_Connect"></Button>
+        <Grid Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="70"></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center">Username</TextBlock>
+            <TextBox x:Name="username_Textbox" Grid.Column="1" VerticalContentAlignment="Center"></TextBox>
+        </Grid>
+        <Button Grid.Row="4" Grid.Column="2" Height="40" VerticalAlignment="Bottom" Content="Connect" Click="btn_Connect"></Button>
     </Grid>
 </Window>

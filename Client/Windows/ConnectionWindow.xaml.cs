@@ -20,7 +20,7 @@ namespace ClientApp
     /// </summary>
     public partial class ConnectionWindow : Window
     {
-        MyClient client;
+        ChatUser client;
 
         public ConnectionWindow()
         {
@@ -41,20 +41,22 @@ namespace ClientApp
             }
         }
 
-        async Task<MyClient> connect()
+        async Task<ChatUser> connect()
         {
-            MyClient client = new MyClient();
+            ChatClient client = new ChatClient();
+            ChatUser user = null;
             try
-            {
-  
+            { 
                 await client.Connect(IP_TextBox.Text, Convert.ToInt32(Port_TextBox.Text));
+                user = new ChatUser(client);
+                user.Username = username_Textbox.Text;
             }
             catch
             {
                 MessageBox.Show($"Unable to connect at  { IP_TextBox.Text}:{Port_TextBox.Text}");
                 client = null;
             }
-            return client;
+            return user;
         }
     }
 }

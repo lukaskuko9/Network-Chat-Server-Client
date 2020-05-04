@@ -21,7 +21,7 @@
             <TextBlock x:Name="Chat" TextWrapping="Wrap" Text="" />
         </Grid>
         <Grid Grid.Row="1" Grid.ColumnSpan="3">
-            <TextBox x:Name="chatMessage"></TextBox>
+            <TextBox x:Name="chatMessage_TextBox"></TextBox>
         </Grid>
         <Grid Grid.Row="1" Grid.Column="4" Grid.ColumnSpan="1">
             <Button Grid.Column="3" Content="Send" Click="btn_Send"/>
