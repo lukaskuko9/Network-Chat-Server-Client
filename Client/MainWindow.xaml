@@ -24,7 +24,7 @@
             <TextBox x:Name="chatMessage_TextBox"></TextBox>
         </Grid>
         <Grid Grid.Row="1" Grid.Column="4" Grid.ColumnSpan="1">
-            <Button Grid.Column="3" Content="Send" Click="btn_Send"/>
+            <Button x:Name="btn_Send" Grid.Column="3" Content="Send" Click="btnClick_Send"/>
         </Grid>
     </Grid>
 </Window>
