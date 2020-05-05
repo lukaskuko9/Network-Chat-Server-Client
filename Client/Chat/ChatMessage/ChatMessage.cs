@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 
 namespace ClientApp
 {
@@ -7,7 +8,7 @@ namespace ClientApp
         public DateTime Time { get; set; }
         public ChatUser Author { get; set; }
         public string Content { get; set; }
-
+        public ChatMessage This { get => this; }
         static private IChatMessageFormat _chatMessageFormat = new ChatMessageFormatClassic();
         public ChatMessage(ChatUser author, string content)
         {

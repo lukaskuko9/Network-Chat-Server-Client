@@ -10,7 +10,6 @@ namespace ServerClient
 {
     public class ChatClient
     {
-
         public delegate void MessageDelegate(ChatMessage chatMessage);
         public event MessageDelegate OnMessageReceived;
 

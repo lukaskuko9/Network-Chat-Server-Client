@@ -4,6 +4,7 @@ namespace ClientApp
 {
     class ChatMessageFormatClassic : IChatMessageFormat
     {
+        public int MyProperty { get; set; }
         public ChatMessage GetMessageFromString(string textMessage)
         {
             string[] split = textMessage.Split(';');
@@ -30,7 +31,7 @@ namespace ClientApp
 
         public string GetStringFromMessage(ChatMessage chatMessage)
         {
-            return $"{chatMessage.Time.ToShortTimeString()};{chatMessage.Author};{chatMessage.Content}";
+            return $"{chatMessage.Time.ToLongTimeString()};{chatMessage.Author};{chatMessage.Content}";
         }
     }
 }

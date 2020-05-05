@@ -1,23 +1,59 @@
 ﻿using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 
 namespace ClientApp
 {
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        ObservableCollection<ChatMessage> _chatMessages = new ObservableCollection<ChatMessage>();
+      
+        public ObservableCollection<ChatMessage> chatMessages
+        {
+            get => _chatMessages;
+            set
+            {
+                OnPropertyChanged();
+                _chatMessages = value;
+            }
+        }
         ChatUser user = null;
+        ChatMessage _message;
+        public ChatMessage message
+        {
+            get => _message;
+            set
+            {
+                OnPropertyChanged();
+                _message = value;
+            }
+
+        }
+
 
         public MainWindow(ChatUser client)
         {
             InitializeComponent();
+            this.DataContext = this;
             chatMessage_TextBox.KeyDown += ChatMessage_TextBox_KeyDown;
             user = client;
             receive();
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string name = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
         private void ChatMessage_TextBox_KeyDown(object sender, KeyEventArgs e)
@@ -37,7 +73,7 @@ namespace ClientApp
 
         private void Client_OnMessageReceived(ChatMessage chatMessage)
         {
-            Chat.Text += chatMessage + Environment.NewLine;
+            chatMessages.Add(chatMessage);
         }
 
         async void SendMessage(string msg)
@@ -57,6 +93,12 @@ namespace ClientApp
         {
             string msg = chatMessage_TextBox.Text;
             SendMessage(msg);
+        }
+
+        private void Label_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            Label l = (Label)sender;
+            MessageBox.Show(l.Content.ToString());
         }
     }
 }
