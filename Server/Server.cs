@@ -1,7 +1,12 @@
-﻿using System;
+﻿using ChatApp;
+using ClientApp;
+using ServerClient;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,9 +15,9 @@ namespace Server
     class Server
     {
         TcpListener listener;
-        List<TcpClient> clients = new List<TcpClient>();
+        List<ChatClient> clients = new List<ChatClient>();
 
-        public delegate void ClientConnection(TcpClient client);
+        public delegate void ClientConnection(ChatClient client);
         public event ClientConnection OnClientConnected;
         public event ClientConnection OnClientDisconnected;
 
@@ -21,26 +26,32 @@ namespace Server
             IPAddress localAdd = IPAddress.Parse(SERVER_IP);
             listener = new TcpListener(localAdd, PORT_NO);
 
-            OnClientConnected += async (TcpClient client) =>
+            OnClientConnected += async (ChatClient chatClient) =>
             {
+                NetworkStream nwStream = chatClient.GetNetworkStream();
+
                 Global.logger.WriteLine("Client connected...");
-                clients.Add(client);
-                await Listen(client);
+                clients.Add(chatClient);
+                //string data=Serialiser.Serializer.SerializeObject(chatClient.ConnectionInfo); // send user connection info
+                //await sendMessageToClient(chatClient, data);
+                await Listen(chatClient); //listen to messages from this client
             };
 
-            OnClientDisconnected += (TcpClient client) =>
+            OnClientDisconnected += (ChatClient chatClient) =>
             {
                 Global.logger.WriteLine("Client disconnected...");
-                clients.Remove(client);
-                client.Dispose();
-                client = null;
+                clients.Remove(chatClient);
+                chatClient.Client.Dispose();
+                chatClient = null;
             };
         }
 
         public async Task AcceptTcpClient()
         {
-            TcpClient client = await listener.AcceptTcpClientAsync();    
-            OnClientConnected(client);
+            TcpClient tcpClient = await listener.AcceptTcpClientAsync();
+            NetworkStream nwStream = tcpClient.GetStream();
+            ChatClient chatClient = new ChatClient(tcpClient, nwStream);
+            OnClientConnected(chatClient);
         }
 
         public void StartListening()
@@ -50,41 +61,65 @@ namespace Server
             listener.Start();
         }
 
+        private void sendMessageToAll(ChatMessage chatMessage)
+        {
+            //byte[] buffer = Encoding.ASCII.GetBytes(chatMessage.Content);
+
+            foreach (var client in clients)
+            {
+
+                NetworkStream nwStream = client.GetNetworkStream();
+               // string dataReceived = Encoding.ASCII.GetString(buffer, 0, buffer.Length);
+                //Global.logger.WriteLine("Received : " + dataReceived);
+
+                Serialiser.Serializer.Serialize(nwStream, chatMessage);
+            }
+        }
+
+        private async Task sendMessageToClient(ChatClient client, string msg)
+        {
+            byte[] msgBytes  = Encoding.ASCII.GetBytes(msg);
+            NetworkStream nwStream = client.GetNetworkStream();
+            await nwStream.WriteAsync(msgBytes, 0, msgBytes.Length);
+        }
+
         private async Task sendMessageToAll(byte[] buffer, int bytesRead)
         {
             foreach (var client in clients)
             {
-                NetworkStream nwStream = client.GetStream();
+                NetworkStream nwStream = client.GetNetworkStream();
                 //byte[] buffer = new byte[client.SendBufferSize];
 
                 //Console.WriteLine("Sending back : " + dataReceived);
                 await nwStream.WriteAsync(buffer, 0, bytesRead);
             }
         }
-        public async Task Listen(TcpClient client)
+        public async Task Listen(ChatClient client)
         {
-            while (client != null && client.Connected)
+            while (client != null && client.Client.Connected)
             {
 
                 try
                 {
                     //---get the incoming data through a network stream---
-                    NetworkStream nwStream = client.GetStream();
-                    byte[] buffer = new byte[client.ReceiveBufferSize];
+                    NetworkStream nwStream = client.GetNetworkStream();
+                    byte[] buffer = new byte[client.Client.ReceiveBufferSize];
 
                     //---read incoming stream---
-                    int bytesRead = await nwStream.ReadAsync(buffer, 0, client.ReceiveBufferSize);
+                    int bytesRead = await nwStream.ReadAsync(buffer, 0, client.Client.ReceiveBufferSize);
 
                     //---convert the data received into a string---
                     string dataReceived = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                    Global.logger.WriteLine("Received : " + dataReceived);
+                    var m=Serialiser.Serializer.DeserializeObject<ChatMessage>(dataReceived);
+                   // Global.logger.WriteLine("Received : " + dataReceived);
 
                     //---write back the text to the client---
                     await sendMessageToAll(buffer, bytesRead);
+                    
                 }
-                catch
+                catch(Exception e)
                 {
-                    if (!client.Connected)
+                    if (!client.Client.Connected)
                         OnClientDisconnected(client);
                 }
 
@@ -92,17 +127,17 @@ namespace Server
             }
 
         }
-
         public void Disconnect()
         {
             foreach (var client in clients)
             {
                 Global.logger.WriteLine($"Disconnecting");
-                client.Close();
+                client.Client.Close();
             }
             
             listener.Stop();
             Console.ReadLine();
         }
+
     }
 }

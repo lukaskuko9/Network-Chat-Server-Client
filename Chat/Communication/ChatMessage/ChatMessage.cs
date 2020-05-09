@@ -8,7 +8,7 @@ namespace ClientApp
         public DateTime Time { get; set; }
         public ChatUser Author { get; set; }
         public string Content { get; set; }
-        public ChatMessage This { get => this; }
+
         static private IChatMessageFormat _chatMessageFormat = new ChatMessageFormatClassic();
         public ChatMessage(ChatUser author, string content)
         {
@@ -19,12 +19,12 @@ namespace ClientApp
 
         public static ChatMessage GetMessageFromString(string textMessage)
         {
-            return _chatMessageFormat.GetMessageFromString(textMessage);
+            return _chatMessageFormat.ParseStringToMessage(textMessage);
         }
 
         public static string GetStringFromMessage(ChatMessage chatMessage)
         {
-            return _chatMessageFormat.GetStringFromMessage(chatMessage);
+            return _chatMessageFormat.ParseMessageToString(chatMessage);
         }
 
         public override string ToString()

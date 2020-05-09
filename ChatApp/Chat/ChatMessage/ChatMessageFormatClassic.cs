@@ -31,7 +31,7 @@ namespace ClientApp
 
         public string GetStringFromMessage(ChatMessage chatMessage)
         {
-            return $"{chatMessage.Time.ToLongTimeString()};{chatMessage.Author};{chatMessage.Content}";
+            return $"[{chatMessage.Time.ToLongTimeString()};{chatMessage.Author};{chatMessage.Content}]";
         }
     }
 }

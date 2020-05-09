@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -46,7 +47,13 @@ namespace ClientApp
             this.DataContext = this;
             chatMessage_TextBox.KeyDown += ChatMessage_TextBox_KeyDown;
             user = client;
-            receive();
+            //startReceiving();
+        }
+
+        protected override async void OnContentRendered(EventArgs e)
+        {
+            base.OnContentRendered(e);
+            await startReceiving();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -56,16 +63,16 @@ namespace ClientApp
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
-        private void ChatMessage_TextBox_KeyDown(object sender, KeyEventArgs e)
+        private async void ChatMessage_TextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if(e.Key==Key.Enter)
             {
                 string msg = chatMessage_TextBox.Text;
-                SendMessage(msg);
+                await SendMessage(msg);
             }
         }
 
-        private async void receive()
+        private async Task startReceiving()
         {
             this.user.Client.OnMessageReceived += Client_OnMessageReceived;
             await user.Client.ReceiveAsync();
@@ -76,23 +83,23 @@ namespace ClientApp
             chatMessages.Add(chatMessage);
         }
 
-        async void SendMessage(string msg)
+        async Task SendMessage(string msg)
         {  
             if (msg == string.Empty)
                 return;
 
             ChatMessage chatMessage = new ChatMessage(user, msg);
-
+            string m= Serialiser.Serializer.SerializeObject(chatMessage);
             if (user.Client != null)
-                await user.Client.SendAsync(ChatMessage.GetStringFromMessage(chatMessage));
+              await user.Client.SendAsync(m);
 
             chatMessage_TextBox.Text = string.Empty;
         }
 
-        private void btnClick_Send(object sender, RoutedEventArgs e)
+        private async void btnClick_Send(object sender, RoutedEventArgs e)
         {
             string msg = chatMessage_TextBox.Text;
-            SendMessage(msg);
+            await SendMessage(msg);
         }
 
         private void Label_MouseDown(object sender, MouseButtonEventArgs e)
