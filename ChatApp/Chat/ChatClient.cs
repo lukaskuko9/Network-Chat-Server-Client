@@ -1,21 +1,20 @@
 ﻿using ChatApp;
 using ClientApp;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net.Sockets;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ServerClient
 {
-    public class ChatClient
+    [Serializable()]
+    public class ChatClient : ISerializable
     {
         public delegate void MessageDelegate(ChatMessage chatMessage);
         public event MessageDelegate OnMessageReceived;
 
-        public ConnectionInfo ConnectionInfo { get; private set; }
+        public ConnectionInfo ConnectionInfo { get; set; }
         public TcpClient Client { get; private set; }
         NetworkStream nwStream;
 
@@ -27,7 +26,6 @@ namespace ServerClient
         public ChatClient(TcpClient tcpClient, NetworkStream nwStream)
         {
             Client = tcpClient;
-            ConnectionInfo = new ConnectionInfo();
             this.nwStream = nwStream;
         }
 
@@ -35,7 +33,6 @@ namespace ServerClient
         {
             await Client.ConnectAsync(SERVER_IP, PORT_NO);
             nwStream = Client.GetStream();
-            //ConnectionInfo = Serialiser.Serializer.Deserialize(nwStream); 
         }
 
         public async Task SendAsync(string msg)
@@ -49,9 +46,24 @@ namespace ServerClient
             await nwStream.WriteAsync(bytesToSend, 0, bytesToSend.Length);
         }
 
-        static int i= 0;
+        void handleDeserializedObject(dynamic deserializedObject)
+        {
+            if (deserializedObject.GetType() == typeof(ChatMessage))
+            {
+                OnMessageReceived(deserializedObject);
+            }
+            else if (deserializedObject.GetType() == typeof(ConnectionInfo))
+            {
+                this.ConnectionInfo = deserializedObject;
+               
+            }
+            else
+                throw new Exception("error: couldnt handle deserialized object");
+        }
+
         public async Task ReceiveAsync()
         {
+            
             while (true)
             {
                 byte[] bytesToRead = new byte[Client.ReceiveBufferSize];
@@ -59,11 +71,22 @@ namespace ServerClient
                 string msg = Encoding.ASCII.GetString(bytesToRead, 0, bytesRead);
                 Console.WriteLine("Received : " + msg);
 
-                ChatMessage chatMessage = Serialiser.Serializer.DeserializeObject<ChatMessage>(msg);
-                OnMessageReceived(chatMessage);
+                dynamic deserializedObject = Serialiser.Serializer.DeserializeObject(msg);
+                handleDeserializedObject(deserializedObject);
             }
         }
 
         public NetworkStream GetNetworkStream() => nwStream;
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info.AddValue(nameof(ConnectionInfo), this.ConnectionInfo);
+        }
+
+        public ChatClient(SerializationInfo info, StreamingContext context)
+        {
+            // Reset the property value using the GetValue method.
+            ConnectionInfo = (ConnectionInfo)info.GetValue(nameof(ConnectionInfo), typeof(ConnectionInfo));
+        }
     }
 }

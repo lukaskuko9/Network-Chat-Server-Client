@@ -30,6 +30,22 @@ namespace Serialiser
             }
         }
 
+        public static dynamic DeserializeObject(string str)
+        {
+            BinaryFormatter bf = new BinaryFormatter();
+            byte[] b = Convert.FromBase64String(str);
+            MemoryStream ms = new MemoryStream(b);
+
+            try
+            {
+                return bf.Deserialize(ms);
+            }
+            finally
+            {
+                ms.Close();
+            }
+        }
+
         public static T DeserializeObject<T>(string str)
         {
             BinaryFormatter bf = new BinaryFormatter();

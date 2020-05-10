@@ -47,7 +47,6 @@ namespace ClientApp
             this.DataContext = this;
             chatMessage_TextBox.KeyDown += ChatMessage_TextBox_KeyDown;
             user = client;
-            //startReceiving();
         }
 
         protected override async void OnContentRendered(EventArgs e)

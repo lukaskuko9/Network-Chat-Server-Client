@@ -12,6 +12,14 @@ using System.Threading.Tasks;
 
 namespace Server
 {
+    public static class IntExtensions
+    {
+        public static void GenerateNewConnectionInfo(this ChatClient client)
+        {
+            client.ConnectionInfo = new ConnectionInfo();
+        }
+    }
+
     class Server
     {
         TcpListener listener;
@@ -30,16 +38,16 @@ namespace Server
             {
                 NetworkStream nwStream = chatClient.GetNetworkStream();
 
-                Global.logger.WriteLine("Client connected...");
+                Global.logger.WriteLine($"Client [ID:{chatClient.ConnectionInfo.ID}] connected...");
                 clients.Add(chatClient);
-                //string data=Serialiser.Serializer.SerializeObject(chatClient.ConnectionInfo); // send user connection info
-                //await sendMessageToClient(chatClient, data);
+                string data=Serialiser.Serializer.SerializeObject(chatClient.ConnectionInfo); // send user connection info
+                await sendMessageToClient(chatClient, data);
                 await Listen(chatClient); //listen to messages from this client
             };
 
             OnClientDisconnected += (ChatClient chatClient) =>
             {
-                Global.logger.WriteLine("Client disconnected...");
+                Global.logger.WriteLine($"Client [ID:{chatClient.ConnectionInfo.ID}] disconnected...");
                 clients.Remove(chatClient);
                 chatClient.Client.Dispose();
                 chatClient = null;
@@ -51,6 +59,7 @@ namespace Server
             TcpClient tcpClient = await listener.AcceptTcpClientAsync();
             NetworkStream nwStream = tcpClient.GetStream();
             ChatClient chatClient = new ChatClient(tcpClient, nwStream);
+            chatClient.GenerateNewConnectionInfo();
             OnClientConnected(chatClient);
         }
 
@@ -83,7 +92,27 @@ namespace Server
             await nwStream.WriteAsync(msgBytes, 0, msgBytes.Length);
         }
 
-        private async Task sendMessageToAll(byte[] buffer, int bytesRead)
+        private async Task sendMessageToClient(ChatClient client, ChatMessage msg)
+        {
+            string data= Serialiser.Serializer.SerializeObject<ChatMessage>(msg);
+            byte[] msgBytes = Encoding.ASCII.GetBytes(data);
+            await sendMessageToClient(client, data);
+        }
+
+
+        private async Task sendMessageToClients(List<ChatClient> chatClients, ChatMessage msg)
+        {
+            int i = 0;
+            foreach (var client in chatClients)
+            {
+                if(i % 2 == 0)
+                    await sendMessageToClient(client, msg);
+
+                i++;
+            }
+        }
+
+        /*private async Task sendMessageToAll(byte[] buffer, int bytesRead)
         {
             foreach (var client in clients)
             {
@@ -93,7 +122,8 @@ namespace Server
                 //Console.WriteLine("Sending back : " + dataReceived);
                 await nwStream.WriteAsync(buffer, 0, bytesRead);
             }
-        }
+        }*/
+
         public async Task Listen(ChatClient client)
         {
             while (client != null && client.Client.Connected)
@@ -114,7 +144,14 @@ namespace Server
                    // Global.logger.WriteLine("Received : " + dataReceived);
 
                     //---write back the text to the client---
-                    await sendMessageToAll(buffer, bytesRead);
+
+                    if(m.GetType() == typeof(ChatMessage)) //is message
+                    {
+                        if(m.MessageType == ChatMessageType.Global)
+                            await sendMessageToClients(clients,m);
+                        //else if(m.MessageType == ChatMessageType.PM)
+
+                    }
                     
                 }
                 catch(Exception e)

@@ -12,14 +12,12 @@ namespace ClientApp
     [Serializable()]
     public class ChatUser : ISerializable
     {
-        public ConnectionInfo ConnectionInfo { get; set; }
         public ChatClient Client { get; set; }
         public string Username { get; set; }
         
         public ChatUser(ChatClient client)
         {
             this.Client = client;
-            this.ConnectionInfo = client.ConnectionInfo;
         }
 
         internal ChatUser(string username)
@@ -35,14 +33,14 @@ namespace ClientApp
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info.AddValue(nameof(Username), this.Username);
-            info.AddValue(nameof(ConnectionInfo), this.ConnectionInfo);
+            info.AddValue(nameof(ChatClient), this.Client);
         }
 
         public ChatUser(SerializationInfo info, StreamingContext context)
         {
             // Reset the property value using the GetValue method.
             Username = info.GetString(nameof(Username));
-            ConnectionInfo = (ConnectionInfo)info.GetValue(nameof(ConnectionInfo),typeof(ConnectionInfo));
+            Client = (ChatClient)info.GetValue(nameof(ChatClient),typeof(ChatClient));
         }
     }
 }
