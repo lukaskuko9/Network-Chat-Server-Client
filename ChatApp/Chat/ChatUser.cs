@@ -14,13 +14,14 @@ namespace ClientApp
     {
         public ChatClient Client { get; set; }
         public string Username { get; set; }
-        
+        public virtual bool IsServer { get; protected set; } = false;
+
         public ChatUser(ChatClient client)
         {
             this.Client = client;
         }
 
-        internal ChatUser(string username)
+        public ChatUser(string username)
         {
             this.Username = username;
         }
@@ -34,13 +35,29 @@ namespace ClientApp
         {
             info.AddValue(nameof(Username), this.Username);
             info.AddValue(nameof(ChatClient), this.Client);
+            info.AddValue(nameof(IsServer), this.IsServer);
         }
 
         public ChatUser(SerializationInfo info, StreamingContext context)
         {
-            // Reset the property value using the GetValue method.
             Username = info.GetString(nameof(Username));
             Client = (ChatClient)info.GetValue(nameof(ChatClient),typeof(ChatClient));
+            IsServer = info.GetBoolean(nameof(IsServer));
+        }
+    }
+
+    [Serializable()]
+    public class ChatServerUser : ChatUser, ISerializable
+    {
+        public override bool IsServer => true;
+
+        public ChatServerUser() : base("server")
+        {
+
+        }
+
+        public ChatServerUser(SerializationInfo info, StreamingContext context) : base(info,context)
+        {
         }
     }
 }

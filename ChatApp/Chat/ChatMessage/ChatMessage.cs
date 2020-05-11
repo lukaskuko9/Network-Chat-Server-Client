@@ -5,44 +5,40 @@ using System.Runtime.Serialization;
 
 namespace ClientApp
 {
-    public enum ChatMessageType
-    {
-        Global, PM
-    }
-
     [Serializable()]
     public class ChatMessage : ISerializable
     {
-        static private IChatMessageFormat _chatMessageFormat = new ChatMessageFormatClassic();
-
+        public enum ChatMessageType
+        {
+            Global, PM, Group
+        }
         public DateTime Time { get; set; }
         public ChatUser Author { get; set; }
 
+        public string ChatTime => Time.ToShortTimeString();
+        public bool ServerMessage { get; set; }
+
         public string Content { get; set; }
-        public ChatMessageType MessageType { get; private set; }
-        public List<ChatUser> Receivers { get; set; }
+        public ChatMessageType MessageType {
+            get
+            {
+                ChatMessageType msgType = ChatMessageType.Global;
+                if (Receivers.Count == 1)
+                    msgType = ChatMessageType.PM;
+                else if (Receivers.Count > 1)
+                    msgType = ChatMessageType.Group;
+
+                return msgType;
+            }
+        }
+        public HashSet<ChatUser> Receivers { get; private set; }
 
         public ChatMessage(ChatUser author, string content)
         {
             this.Author = author;
             this.Content = content;
             this.Time = DateTime.Now;
-            this.MessageType = ChatMessageType.Global;
-        }
-
-        public ChatMessage()
-        {
-
-        }
-
-        public static ChatMessage GetMessageFromString(string textMessage)
-        {
-            return _chatMessageFormat.GetMessageFromString(textMessage);
-        }
-
-        public static string GetStringFromMessage(ChatMessage chatMessage)
-        {
-            return _chatMessageFormat.GetStringFromMessage(chatMessage);
+            this.Receivers = new HashSet<ChatUser>();
         }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -51,6 +47,7 @@ namespace ClientApp
             info.AddValue(nameof(Content), this.Content);
             info.AddValue(nameof(Author), this.Author);
             info.AddValue(nameof(MessageType), this.MessageType);
+            info.AddValue(nameof(Receivers), this.Receivers);
         }
 
         public ChatMessage(SerializationInfo info, StreamingContext context)
@@ -58,7 +55,12 @@ namespace ClientApp
             Time = (DateTime)info.GetValue(nameof(Time), typeof(DateTime));
             Content = (string)info.GetString(nameof(Content));
             Author = (ChatUser)info.GetValue(nameof(Author), typeof(ChatUser));
-            MessageType = (ChatMessageType)info.GetValue(nameof(MessageType), typeof(ChatMessageType));
+            Receivers = (HashSet<ChatUser>)info.GetValue(nameof(Receivers), typeof(HashSet<ChatUser>));
+        }
+
+        public override string ToString()
+        {
+            return $"[{ChatTime}] {Author}: {Content}";
         }
     }
 }

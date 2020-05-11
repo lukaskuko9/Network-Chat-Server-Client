@@ -2,17 +2,16 @@
 using ClientApp;
 using ServerClient;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
+using static ClientApp.ChatMessage;
 
 namespace Server
 {
-    public static class IntExtensions
+    public static class Extension
     {
         public static void GenerateNewConnectionInfo(this ChatClient client)
         {
@@ -23,9 +22,9 @@ namespace Server
     class Server
     {
         TcpListener listener;
-        List<ChatClient> clients = new List<ChatClient>();
+        List<ChatUser> clients = new List<ChatUser>();
 
-        public delegate void ClientConnection(ChatClient client);
+        public delegate void ClientConnection(ChatUser client);
         public event ClientConnection OnClientConnected;
         public event ClientConnection OnClientDisconnected;
 
@@ -34,33 +33,36 @@ namespace Server
             IPAddress localAdd = IPAddress.Parse(SERVER_IP);
             listener = new TcpListener(localAdd, PORT_NO);
 
-            OnClientConnected += async (ChatClient chatClient) =>
+            OnClientConnected += async (ChatUser user) =>
             {
-                NetworkStream nwStream = chatClient.GetNetworkStream();
+                NetworkStream nwStream = user.Client.GetNetworkStream();
 
-                Global.logger.WriteLine($"Client [ID:{chatClient.ConnectionInfo.ID}] connected...");
-                clients.Add(chatClient);
-                string data=Serialiser.Serializer.SerializeObject(chatClient.ConnectionInfo); // send user connection info
-                await sendMessageToClient(chatClient, data);
-                await Listen(chatClient); //listen to messages from this client
+                Global.logger.WriteLine($"Client [ID: {user.Client.ConnectionInfo.ID} Name: {user.Username}] connected...");
+                clients.Add(user);
+
+                string data=Serializer.Serializer.SerializeObject(user.Client.ConnectionInfo); 
+                await SendMessageToClient(user, data);// send user connection info
+
+                await Listen(user); //listen to messages from this client
             };
 
-            OnClientDisconnected += (ChatClient chatClient) =>
+            OnClientDisconnected += (ChatUser user) =>
             {
-                Global.logger.WriteLine($"Client [ID:{chatClient.ConnectionInfo.ID}] disconnected...");
-                clients.Remove(chatClient);
-                chatClient.Client.Dispose();
-                chatClient = null;
+                Global.logger.WriteLine($"Client [ID: {user.Client.ConnectionInfo.ID} Name: {user.Username}] disconnected...");
+                clients.Remove(user);
+                user.Client.TcpClient.Dispose();
+                user = null;
             };
         }
 
         public async Task AcceptTcpClient()
         {
             TcpClient tcpClient = await listener.AcceptTcpClientAsync();
-            NetworkStream nwStream = tcpClient.GetStream();
-            ChatClient chatClient = new ChatClient(tcpClient, nwStream);
+            ChatClient chatClient = new ChatClient(tcpClient);
+            ChatUser chatUser = new ChatUser(chatClient);
+
             chatClient.GenerateNewConnectionInfo();
-            OnClientConnected(chatClient);
+            OnClientConnected(chatUser);
         }
 
         public void StartListening()
@@ -70,106 +72,75 @@ namespace Server
             listener.Start();
         }
 
-        private void sendMessageToAll(ChatMessage chatMessage)
-        {
-            //byte[] buffer = Encoding.ASCII.GetBytes(chatMessage.Content);
-
-            foreach (var client in clients)
-            {
-
-                NetworkStream nwStream = client.GetNetworkStream();
-               // string dataReceived = Encoding.ASCII.GetString(buffer, 0, buffer.Length);
-                //Global.logger.WriteLine("Received : " + dataReceived);
-
-                Serialiser.Serializer.Serialize(nwStream, chatMessage);
-            }
-        }
-
-        private async Task sendMessageToClient(ChatClient client, string msg)
+        public async Task SendMessageToClient(ChatUser client, string msg)
         {
             byte[] msgBytes  = Encoding.ASCII.GetBytes(msg);
-            NetworkStream nwStream = client.GetNetworkStream();
+            NetworkStream nwStream = client.Client.GetNetworkStream();
             await nwStream.WriteAsync(msgBytes, 0, msgBytes.Length);
         }
 
-        private async Task sendMessageToClient(ChatClient client, ChatMessage msg)
+        public async Task SendMessageToClient(ChatUser client, ChatMessage msg)
         {
-            string data= Serialiser.Serializer.SerializeObject<ChatMessage>(msg);
+            string data= Serializer.Serializer.SerializeObject<ChatMessage>(msg);
             byte[] msgBytes = Encoding.ASCII.GetBytes(data);
-            await sendMessageToClient(client, data);
+            await SendMessageToClient(client, data);
         }
-
-
-        private async Task sendMessageToClients(List<ChatClient> chatClients, ChatMessage msg)
-        {
-            int i = 0;
-            foreach (var client in chatClients)
-            {
-                if(i % 2 == 0)
-                    await sendMessageToClient(client, msg);
-
-                i++;
-            }
-        }
-
-        /*private async Task sendMessageToAll(byte[] buffer, int bytesRead)
+        public async Task SendMessageToAllClients(ChatMessage msg)
         {
             foreach (var client in clients)
-            {
-                NetworkStream nwStream = client.GetNetworkStream();
-                //byte[] buffer = new byte[client.SendBufferSize];
+                await SendMessageToClient(client, msg);
+        }
 
-                //Console.WriteLine("Sending back : " + dataReceived);
-                await nwStream.WriteAsync(buffer, 0, bytesRead);
-            }
-        }*/
-
-        public async Task Listen(ChatClient client)
+        public async Task SendMessageToClients(ICollection<ChatUser> chatClients, ChatMessage msg)
         {
-            while (client != null && client.Client.Connected)
-            {
+            foreach (var client in chatClients)
+                    await SendMessageToClient(client, msg);
+        }
 
+        async Task handleDeserializedObject(dynamic deserializedObject)
+        {
+            if (deserializedObject.GetType() == typeof(ChatMessage)) //is message
+            {
+                ChatMessage m = deserializedObject;
+                Global.logger.WriteLine(m.ToString());
+                if (m.MessageType == ChatMessageType.Global)
+                    await SendMessageToAllClients(m);
+                else
+                    await SendMessageToClients(m.Receivers, m);
+            }
+            else
+                throw new Exception("error: couldnt handle deserialized object");
+        }
+
+        public async Task Listen(ChatUser client)
+        {
+            while (client != null && client.Client.TcpClient.Connected)
+            {
                 try
                 {
-                    //---get the incoming data through a network stream---
-                    NetworkStream nwStream = client.GetNetworkStream();
-                    byte[] buffer = new byte[client.Client.ReceiveBufferSize];
+                    NetworkStream nwStream = client.Client.GetNetworkStream();
+                    byte[] buffer = new byte[client.Client.TcpClient.ReceiveBufferSize];
+                    int bytesRead = await nwStream.ReadAsync(buffer, 0, client.Client.TcpClient.ReceiveBufferSize);
 
-                    //---read incoming stream---
-                    int bytesRead = await nwStream.ReadAsync(buffer, 0, client.Client.ReceiveBufferSize);
-
-                    //---convert the data received into a string---
                     string dataReceived = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                    var m=Serialiser.Serializer.DeserializeObject<ChatMessage>(dataReceived);
-                   // Global.logger.WriteLine("Received : " + dataReceived);
-
-                    //---write back the text to the client---
-
-                    if(m.GetType() == typeof(ChatMessage)) //is message
-                    {
-                        if(m.MessageType == ChatMessageType.Global)
-                            await sendMessageToClients(clients,m);
-                        //else if(m.MessageType == ChatMessageType.PM)
-
-                    }
-                    
+                    dynamic deserializedObject = Serializer.Serializer.DeserializeObject(dataReceived);
+                    await handleDeserializedObject(deserializedObject);
                 }
                 catch(Exception e)
                 {
-                    if (!client.Client.Connected)
+                    if (!client.Client.TcpClient.Connected)
                         OnClientDisconnected(client);
+                    else
+                        Global.logger.WriteLine(e.Message);
                 }
-
-
             }
-
         }
-        public void Disconnect()
+        public void Stop()
         {
             foreach (var client in clients)
             {
-                Global.logger.WriteLine($"Disconnecting");
-                client.Client.Close();
+                Global.logger.WriteLine($"Disconnecting {client.Client.ConnectionInfo.ID}");
+                client.Client.TcpClient.Close();
             }
             
             listener.Stop();

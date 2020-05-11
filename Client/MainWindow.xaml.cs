@@ -40,7 +40,6 @@ namespace ClientApp
 
         }
 
-
         public MainWindow(ChatUser client)
         {
             InitializeComponent();
@@ -88,7 +87,7 @@ namespace ClientApp
                 return;
 
             ChatMessage chatMessage = new ChatMessage(user, msg);
-            string m= Serialiser.Serializer.SerializeObject(chatMessage);
+            string m= Serializer.Serializer.SerializeObject(chatMessage);
             if (user.Client != null)
               await user.Client.SendAsync(m);
 

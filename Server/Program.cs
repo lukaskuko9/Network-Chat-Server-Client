@@ -1,3 +1,4 @@
+using ClientApp;
 using System;
 using System.Linq;
 
@@ -31,12 +32,15 @@ namespace Server
             Global.logger.WriteLine($"Starting server at {serverip}:{port}");
             server.StartListening();
             AcceptClients();
-    
+
+            ChatServerUser serverUser = new ChatServerUser();
 
             while(true)
             {
-               // server.Listen(client);
-
+                // server.Listen(client);
+                string text = Console.ReadLine();
+                var msg = new ChatMessage(serverUser, text);
+                server.SendMessageToAllClients(msg).Wait();
             }
         }
     }

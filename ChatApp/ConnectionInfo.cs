@@ -25,7 +25,6 @@ namespace ChatApp
 
         public ConnectionInfo(SerializationInfo info, StreamingContext context)
         {
-            // Reset the property value using the GetValue method.
             ID = (uint)info.GetValue(nameof(ID), typeof(uint));
         }
 

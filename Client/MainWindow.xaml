@@ -23,27 +23,38 @@
                 <ItemsControl ItemsSource="{Binding chatMessages}" Background="LightGray">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid>
+                            <Border BorderBrush="Gray" BorderThickness="1,0,1,1" >
+                                <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="130"></ColumnDefinition>
                                     <ColumnDefinition></ColumnDefinition>
                                 </Grid.ColumnDefinitions>
-                                <Grid Background="AntiqueWhite">
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Background" Value="AntiqueWhite"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Author.IsServer}" Value="True">
+                                                    <Setter Property="Background" Value="#FFB63C3C"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                                         <ColumnDefinition Width="Auto"></ColumnDefinition>
                                     </Grid.ColumnDefinitions>
-                                    <Label Grid.Column="0" Content="{Binding Time.TimeOfDay}"/>
+                                    <Label Grid.Column="0" Content="{Binding ChatTime}"/>
                                     <Label Grid.Column="1" HorizontalAlignment="Right" Content="{Binding Author}" FontWeight="Bold" MouseDown="Label_MouseDown"/>
                                 </Grid>
                                 <Grid Grid.Column="1" Background="AliceBlue">
                                     <Label>
                                         <TextBlock TextWrapping="Wrap" Text="{Binding Content}"/>
                                     </Label>
-                                    
                                 </Grid>
-                                
+
                             </Grid>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

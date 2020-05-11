@@ -47,8 +47,6 @@ namespace ClientApp
             ChatUser user = null;
             try
             { 
-                await client.Connect(IP_TextBox.Text, Convert.ToInt32(Port_TextBox.Text));
-
                 user = new ChatUser(client);
                 user.Username = username_Textbox.Text;
                 if(user.Username.Length > 10)
@@ -56,7 +54,13 @@ namespace ClientApp
                     MessageBox.Show("Max username length is limited to 10 characters!");
                     return null;
                 }
-                Console.WriteLine();
+                else if (user.Username.Length == 0)
+                {
+                    MessageBox.Show("Username can't be empty!");
+                    return null;
+                }
+
+                await client.Connect(IP_TextBox.Text, Convert.ToInt32(Port_TextBox.Text));
             }
             catch
             {
