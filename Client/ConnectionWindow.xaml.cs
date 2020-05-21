@@ -30,7 +30,7 @@ namespace ClientApp
 
         private async void btn_Connect(object sender, RoutedEventArgs e)
         {
-            var c = await connect();
+            var c = await Connect();
             client = c;
 
             if(c != null)
@@ -41,26 +41,34 @@ namespace ClientApp
             }
         }
 
-        async Task<ChatUser> connect()
+
+        public async Task<ChatUser> Connect(string username=null, string serverIp = null, int serverPort=0)
         {
-            ChatClient client = new ChatClient();
             ChatUser user = null;
+            ChatClient client = new ChatClient();
+
             try
-            { 
-                user = new ChatUser(client);
-                user.Username = username_Textbox.Text;
-                if(user.Username.Length > 10)
+            {
+                if (username == null)
+                    username = username_Textbox.Text;
+                if (serverIp == null)
+                    serverIp = IP_TextBox.Text;
+                if (serverPort == 0)
+                    serverPort = Convert.ToInt32(Port_TextBox.Text);
+
+                if (username.Length > 10)
                 {
                     MessageBox.Show("Max username length is limited to 10 characters!");
                     return null;
                 }
-                else if (user.Username.Length == 0)
+                else if (username.Length == 0)
                 {
                     MessageBox.Show("Username can't be empty!");
                     return null;
                 }
 
-                await client.Connect(IP_TextBox.Text, Convert.ToInt32(Port_TextBox.Text));
+
+                user = await client.Connect(IP_TextBox.Text, Convert.ToInt32(Port_TextBox.Text), username);
             }
             catch
             {

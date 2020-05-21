@@ -8,29 +8,35 @@ namespace ClientApp
     [Serializable()]
     public class ChatMessage : ISerializable
     {
-        public enum ChatMessageType
+        public enum ChatMessageTargets
         {
             Global, PM, Group
         }
+        public enum ChatMessageType
+        {
+            Message,Server,Connection
+        }
+
         public DateTime Time { get; set; }
         public ChatUser Author { get; set; }
 
         public string ChatTime => Time.ToShortTimeString();
-        public bool ServerMessage { get; set; }
 
         public string Content { get; set; }
-        public ChatMessageType MessageType {
+        public ChatMessageTargets MessageTargets {
             get
             {
-                ChatMessageType msgType = ChatMessageType.Global;
+                ChatMessageTargets msgType = ChatMessageTargets.Global;
                 if (Receivers.Count == 1)
-                    msgType = ChatMessageType.PM;
+                    msgType = ChatMessageTargets.PM;
                 else if (Receivers.Count > 1)
-                    msgType = ChatMessageType.Group;
+                    msgType = ChatMessageTargets.Group;
 
                 return msgType;
             }
         }
+        public ChatMessageType MessageType { get; set; } = ChatMessageType.Message;
+
         public HashSet<ChatUser> Receivers { get; private set; }
 
         public ChatMessage(ChatUser author, string content)
@@ -46,6 +52,7 @@ namespace ClientApp
             info.AddValue(nameof(Time), this.Time);
             info.AddValue(nameof(Content), this.Content);
             info.AddValue(nameof(Author), this.Author);
+            info.AddValue(nameof(MessageTargets), this.MessageTargets);
             info.AddValue(nameof(MessageType), this.MessageType);
             info.AddValue(nameof(Receivers), this.Receivers);
         }
@@ -56,6 +63,7 @@ namespace ClientApp
             Content = (string)info.GetString(nameof(Content));
             Author = (ChatUser)info.GetValue(nameof(Author), typeof(ChatUser));
             Receivers = (HashSet<ChatUser>)info.GetValue(nameof(Receivers), typeof(HashSet<ChatUser>));
+            MessageType = (ChatMessageType)info.GetValue(nameof(MessageType), typeof(ChatMessageType));
         }
 
         public override string ToString()

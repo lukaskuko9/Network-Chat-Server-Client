@@ -72,8 +72,30 @@ namespace ClientApp
 
         private async Task startReceiving()
         {
+            if (!user.Client.TcpClient.Connected)
+                return; 
+
             this.user.Client.OnMessageReceived += Client_OnMessageReceived;
-            await user.Client.ReceiveAsync();
+            await user.Client.ReceiveAsync(); 
+
+        //user disconnected from server and chose to reconnect
+            var c = new ConnectionWindow();
+            var client = await c.Connect(user.Username, user.Client.ServerIP, user.Client.ServerPort);
+
+            if (c != null && client != null)
+            {
+                c.Close();
+
+                MainWindow m = new MainWindow(client);
+                m.ShowActivated = true;
+                m.Show();
+                this.Close();
+            }
+            else
+            {
+                MessageBox.Show("Connection failed", "Unable to reconnect", MessageBoxButton.OK);
+                Application.Current.Shutdown();
+            }
         }
 
         private void Client_OnMessageReceived(ChatMessage chatMessage)
@@ -85,6 +107,12 @@ namespace ClientApp
         {  
             if (msg == string.Empty)
                 return;
+
+            if(!user.Client.TcpClient.Connected)
+            {
+                MessageBox.Show("Not connected to server");
+                return;
+            }
 
             ChatMessage chatMessage = new ChatMessage(user, msg);
             string m= Serializer.Serializer.SerializeObject(chatMessage);
