@@ -1,6 +1,7 @@
 ﻿using ChatApp;
-using ClientApp;
-using ServerClient;
+using ChatApp.Chat;
+using ChatApp.Logger;
+using ChatApp.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -8,7 +9,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static ClientApp.ChatMessage;
+using static ChatApp.Chat.ChatMessage;
 
 namespace Server
 {
@@ -33,9 +34,25 @@ namespace Server
 
         public Server(string SERVER_IP, int PORT_NO)
         {
-            ServerUser = new ChatUser("server");
+            ServerUser = new ChatUser("server"); //"server" is the name of server "user"
             IPAddress localAdd = IPAddress.Parse(SERVER_IP);
             listener = new TcpListener(localAdd, PORT_NO);
+        }
+
+        private async Task wait(ChatClient chatClient)
+        {
+            dynamic o = null;
+            while (o == null)
+            {
+                NetworkStream nwStream = chatClient.GetNetworkStream();
+                byte[] buffer = new byte[chatClient.TcpClient.ReceiveBufferSize];
+                int bytesRead = await nwStream.ReadAsync(buffer, 0, chatClient.TcpClient.ReceiveBufferSize);
+
+                string dataReceived = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                o = Serializer.DeserializeObject(dataReceived);
+                if (o.GetType() != typeof(ChatUser))
+                    o = null;
+            }
         }
 
         public async Task AcceptTcpClient()
@@ -46,9 +63,9 @@ namespace Server
 
             chatClient.GenerateNewConnectionInfo();
 
-            string data = Serializer.Serializer.SerializeObject(chatUser.Client.ConnectionInfo);
-            await SendMessageToClient(chatUser, data);// send user connection info
-
+            string data = Serializer.SerializeObject(chatUser.Client.ConnectionInfo);
+            await SendMessageToClient(chatUser, data); // send user connection info
+            
             dynamic o = null;
             while (o == null)
             {
@@ -57,7 +74,7 @@ namespace Server
                 int bytesRead = await nwStream.ReadAsync(buffer, 0, chatClient.TcpClient.ReceiveBufferSize);
 
                 string dataReceived = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                o = Serializer.Serializer.DeserializeObject(dataReceived);
+                o = Serializer.DeserializeObject(dataReceived);
                 if (o.GetType() != typeof(ChatUser))
                     o = null;
             }
@@ -68,23 +85,33 @@ namespace Server
         public void StartListening()
         {
             //---listen at the specified IP and port no.---
-            Global.logger.WriteLine("Listening...");
+            Logger.Instance.WriteLine("Listening...");
             listener.Start();
         }
 
-        public async Task SendMessageToClient(ChatUser client, string msg)
+        public async Task<bool> SendMessageToClient(ChatUser client, string msg)
         {
-            byte[] msgBytes  = Encoding.ASCII.GetBytes(msg);
-            NetworkStream nwStream = client.Client.GetNetworkStream();
-            await nwStream.WriteAsync(msgBytes, 0, msgBytes.Length);
+            try
+            {
+                byte[] msgBytes = Encoding.ASCII.GetBytes(msg);
+                NetworkStream nwStream = client.Client.GetNetworkStream();
+                await nwStream.WriteAsync(msgBytes, 0, msgBytes.Length);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
-        public async Task SendMessageToClient(ChatUser client, ChatMessage msg)
+        public async Task<bool> SendMessageToClient(ChatUser client, ChatMessage msg)
         {
-            string data= Serializer.Serializer.SerializeObject<ChatMessage>(msg);
+            string data = Serializer.SerializeObject<ChatMessage>(msg);
             byte[] msgBytes = Encoding.ASCII.GetBytes(data);
-            await SendMessageToClient(client, data);
+            bool success = await SendMessageToClient(client, data);
+            return success;
         }
+
         public async Task SendMessageToAllClients(ChatMessage msg)
         {
             foreach (var client in Clients)
@@ -100,10 +127,11 @@ namespace Server
         async Task<dynamic> handleDeserializedObject(dynamic deserializedObject)
         {
             dynamic o = null;
+
             if (deserializedObject.GetType() == typeof(ChatMessage)) //is message
             {
                 ChatMessage m = deserializedObject;
-                Global.logger.WriteLine(m.ToString());
+                Logger.Instance.WriteLine(m.ToString());
                 if (m.MessageTargets == ChatMessageTargets.Global)
                     await SendMessageToAllClients(m);
                 else
@@ -124,7 +152,7 @@ namespace Server
                 int bytesRead = await nwStream.ReadAsync(buffer, 0, client.Client.TcpClient.ReceiveBufferSize);
 
                 string dataReceived = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                dynamic deserializedObject = Serializer.Serializer.DeserializeObject(dataReceived);
+                dynamic deserializedObject = Serializer.DeserializeObject(dataReceived);
                 await handleDeserializedObject(deserializedObject);
                 return deserializedObject;
             }
@@ -147,13 +175,13 @@ namespace Server
                     Exception e = o;
                     //Message = "An existing connection was forcibly closed by the remote host"
                     if (e.InnerException.Message != "An existing connection was forcibly closed by the remote host")
-                        Global.logger.WriteLine(o.ToString());
+                        Logger.Instance.WriteLine(o.ToString());
                 }
                 catch { }
             }                
         }
 
-        public void Disconnect(ChatUser client)
+        public void DisconnectUser(ChatUser client)
         {
             client.Client.TcpClient.Close();
         }
@@ -162,7 +190,7 @@ namespace Server
         {
             foreach (var client in Clients)
             {
-                Global.logger.WriteLine($"Disconnecting {client.Client.ConnectionInfo.ID}");
+                Logger.Instance.WriteLine($"Disconnecting {client.Client.ConnectionInfo.ID}");
                 client.Client.TcpClient.Close();
             }
             

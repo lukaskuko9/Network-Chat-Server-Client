@@ -1,6 +1,6 @@
 ﻿using ChatApp;
-using ClientApp;
-using Server;
+using ChatApp.Chat;
+using ChatApp.Serialization;
 using System;
 using System.Net.Sockets;
 using System.Runtime.Serialization;
@@ -8,16 +8,18 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace ServerClient
+namespace ChatApp.Chat
 {
     [Serializable()]
-    public class ChatClient : ISerializable
+    [AutoSerializableAttribute(typeof(ChatClient))]
+    public class ChatClient : AutoSerializable
     {
         public delegate void MessageDelegate(ChatMessage chatMessage);
         public event MessageDelegate OnMessageReceived;
 
         public ConnectionInfo ConnectionInfo { get; set; }
         public TcpClient TcpClient { get; private set; }
+
         NetworkStream nwStream;
 
         public string ServerIP { get; private set; }
@@ -25,10 +27,14 @@ namespace ServerClient
 
         public ChatClient()
         {
-            TcpClient = new TcpClient();   
+            TcpClient = new TcpClient(); 
         }
 
-        public ChatClient(TcpClient tcpClient)
+        internal ChatClient(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+
+        public ChatClient(TcpClient tcpClient) : base()
         {
             TcpClient = tcpClient;
             this.nwStream = tcpClient.GetStream();
@@ -53,20 +59,27 @@ namespace ServerClient
                 user.Client.TcpClient = TcpClient;
                 user.Username = username;
 
-                string userStr = Serializer.Serializer.SerializeObject(user);
+                string userStr = Serializer.SerializeObject(user);
                 await user.Client.SendAsync(userStr);
                 return user;
             }
-            catch
+            catch(Exception e)
             {
+                Logger.Logger.Instance.WriteLine(e.Message);
                 return null;
             }
+        }
+
+        public async Task SendObjectAsync<T>(T obj) where T: ISerializable
+        {
+            string msg = Serializer.SerializeObject(obj);
+            await SendAsync(msg);
         }
 
         public async Task SendAsync(string msg)
         {
             byte[] bytesToSend = ASCIIEncoding.ASCII.GetBytes(msg);
-            Console.WriteLine("Sending : " + msg    );
+            Console.WriteLine("Sending : " + msg);
             await nwStream.WriteAsync(bytesToSend, 0, bytesToSend.Length);
         }
 
@@ -94,7 +107,7 @@ namespace ServerClient
                     int bytesRead = await nwStream.ReadAsync(bytesToRead, 0, TcpClient.ReceiveBufferSize);
                     string msg = Encoding.ASCII.GetString(bytesToRead, 0, bytesRead);
 
-                    dynamic deserializedObject = Serializer.Serializer.DeserializeObject(msg);
+                    dynamic deserializedObject = Serializer.DeserializeObject(msg);
                     handleDeserializedObject(deserializedObject);
                 }
                 catch(Exception e)
@@ -112,7 +125,7 @@ namespace ServerClient
                         {
                             //message couldn't be sent, disconnecting client
                             TcpClient.Close();
-                            Global.logger.WriteLine(e.Message);
+                            Logger.Logger.Instance.WriteLine(e.Message);
                             break;
                         }
                     }
@@ -131,15 +144,5 @@ namespace ServerClient
         }
 
         public NetworkStream GetNetworkStream() => nwStream;
-
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue(nameof(ConnectionInfo), this.ConnectionInfo);
-        }
-
-        public ChatClient(SerializationInfo info, StreamingContext context)
-        {
-            ConnectionInfo = (ConnectionInfo)info.GetValue(nameof(ConnectionInfo), typeof(ConnectionInfo));
-        }
     }
 }

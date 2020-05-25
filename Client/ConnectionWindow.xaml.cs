@@ -1,4 +1,4 @@
-﻿using ServerClient;
+﻿using ChatApp.Chat;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -67,12 +67,16 @@ namespace ClientApp
                     return null;
                 }
 
-
                 user = await client.Connect(IP_TextBox.Text, Convert.ToInt32(Port_TextBox.Text), username);
+
+
+                if(user == null)
+                {
+                    MessageBox.Show($"Unable to connect at  { IP_TextBox.Text}:{Port_TextBox.Text}");
+                }
             }
             catch
-            {
-                MessageBox.Show($"Unable to connect at  { IP_TextBox.Text}:{Port_TextBox.Text}");
+            {  
                 client = null;
             }
             return user;

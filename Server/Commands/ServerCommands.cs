@@ -1,4 +1,5 @@
-﻿using ClientApp;
+﻿using ChatApp.Chat;
+using ChatApp.Logger;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -29,7 +30,7 @@ namespace Server
 
         public static void NoCommand(string arg)
         {
-            Global.logger.WriteLine("Command not recognized");
+            Logger.Instance.WriteLine("Command not recognized");
         }
 
         public static void ExecuteCommand(string cmd)
@@ -105,8 +106,8 @@ namespace Server
             {
                 int ID = Convert.ToInt32(arg);
                 ChatUser user = server.Clients.Find((u) => u.Client.ConnectionInfo.ID == ID);
-                user.Client.ConnectionInfo.Status = ChatApp.ConnectionInfo.ConnectionStatus.Kicked;
-                server.Disconnect(user);
+                user.Client.ConnectionInfo.Status = ConnectionInfo.ConnectionStatus.Kicked;
+                server.DisconnectUser(user);
             }
             catch (Exception e){
                 Console.WriteLine(e.Message);

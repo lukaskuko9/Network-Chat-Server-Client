@@ -1,12 +1,16 @@
-using ClientApp;
+#define LOCALHOST 
+
+using ChatApp.Chat;
+using ChatApp.Logger;
 using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using static ClientApp.ChatMessage;
+using static ChatApp.Chat.ChatMessage;
 
 namespace Server
 {
+
     internal class Program
     {
         internal static Server server;
@@ -16,21 +20,34 @@ namespace Server
         {
             while (true)
             {
-                var task = server.AcceptTcpClient();
-                await task;
-
-                /*int timeout = 1000;
-                if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
+                try
                 {
-                    //Console.WriteLine("Client accepted");
-                }*/
+                    var task = server.AcceptTcpClient();
+                    //await task;
+
+                    int timeout = 5000;
+                    if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
+                    {
+                        //Console.WriteLine("Client accepted");
+                    }
+                }
+                catch(Exception e)
+                {
+                    Logger.Instance.WriteLine(e.Message);
+                }
+
             }
         }
 
 
         static void Main(string[] args)
         {
-            string serverip = "127.0.0.1";
+#if LOCALHOST
+            string serverip = "127.0.0.1";      
+#else
+            string serverip = "25.148.88.117";
+#endif
+
             int port = 5000;
             if (args.Length >= 1)
             {
@@ -42,9 +59,9 @@ namespace Server
             server.OnClientConnected += async (ChatUser user) =>
             {
                 NetworkStream nwStream = user.Client.GetNetworkStream();
-                user.Client.ConnectionInfo.Status = ChatApp.ConnectionInfo.ConnectionStatus.Connected;
+                user.Client.ConnectionInfo.Status = ConnectionInfo.ConnectionStatus.Connected;
 
-                Global.logger.WriteLine($"Client [ID: {user.Client.ConnectionInfo.ID} Name: {user.Username}] connected...");
+                Logger.Instance.WriteLine($"Client [ID: {user.Client.ConnectionInfo.ID} Name: {user.Username}] connected...");
                 server.Clients.Add(user);
 
                 string msg = $"User {user.Username} joined the server.";
@@ -60,7 +77,7 @@ namespace Server
             server.OnClientDisconnected += async (ChatUser user) =>
             {
                 string msg = null;
-                if(user.Client.ConnectionInfo.Status == ChatApp.ConnectionInfo.ConnectionStatus.Kicked)
+                if(user.Client.ConnectionInfo.Status == ConnectionInfo.ConnectionStatus.Kicked)
                     msg = $"User {user.Username} was kicked by the server.";
                 else
                     msg = $"User {user.Username} left the server.";
@@ -70,7 +87,7 @@ namespace Server
                     MessageType = ChatMessageType.Connection
                 };
 
-                Global.logger.WriteLine($"Client [ID: {user.Client.ConnectionInfo.ID} Name: {user.Username}] disconnected...");
+                Logger.Instance.WriteLine($"Client [ID: {user.Client.ConnectionInfo.ID} Name: {user.Username}] disconnected...");
                 server.Clients.Remove(user);
                 user.Client.TcpClient.Dispose();
                 user = null;
@@ -81,22 +98,16 @@ namespace Server
                 }
                 catch (Exception e)
                 {
-                    Global.logger.WriteLine(e.Message);
+                    Logger.Instance.WriteLine(e.Message);
                 }
             };
-            Global.logger.WriteLine($"Starting server at {serverip}:{port}");
+            Logger.Instance.WriteLine($"Starting server at {serverip}:{port}");
             server.StartListening();
             AcceptClients();
-
             while (true)
             {
-                // server.Listen(client);
                 string text = Console.ReadLine();
                 ServerCommands.ExecuteCommand(text);
-                /*
-                var msg = new ChatMessage(server.ServerUser, text);
-                msg.MessageType = ChatMessage.ChatMessageType.Server;
-                server.SendMessageToAllClients(msg).Wait();*/
             }
         }
     }

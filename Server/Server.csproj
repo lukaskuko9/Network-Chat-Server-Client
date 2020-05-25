@@ -83,11 +83,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CommandAttribute.cs" />
+    <Compile Include="Commands\CommandAttribute.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server.cs" />
-    <Compile Include="ServerCommands.cs" />
+    <Compile Include="Commands\ServerCommands.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

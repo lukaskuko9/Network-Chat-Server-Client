@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ChatApp.Chat;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -113,13 +114,13 @@ namespace ClientApp
                 MessageBox.Show("Not connected to server");
                 return;
             }
-
-            ChatMessage chatMessage = new ChatMessage(user, msg);
-            string m= Serializer.Serializer.SerializeObject(chatMessage);
+            
             if (user.Client != null)
-              await user.Client.SendAsync(m);
-
-            chatMessage_TextBox.Text = string.Empty;
+            {
+                ChatMessage chatMessage = new ChatMessage(user, msg);
+                await user.Client.SendObjectAsync(chatMessage);
+                chatMessage_TextBox.Text = string.Empty;
+            }     
         }
 
         private async void btnClick_Send(object sender, RoutedEventArgs e)

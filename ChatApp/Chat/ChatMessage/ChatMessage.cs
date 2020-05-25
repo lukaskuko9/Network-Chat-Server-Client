@@ -1,13 +1,21 @@
-﻿using System;
+﻿using ChatApp;
+using ChatApp.Chat;
+using ChatApp.Serialization;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Reflection;
 using System.Runtime.Serialization;
 
-namespace ClientApp
+namespace ChatApp.Chat
 {
     [Serializable()]
-    public class ChatMessage : ISerializable
+    [AutoSerializableAttribute(typeof(ChatMessage))]
+    public class ChatMessage : AutoSerializable
     {
+        internal ChatMessage(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+
         public enum ChatMessageTargets
         {
             Global, PM, Group
@@ -45,25 +53,6 @@ namespace ClientApp
             this.Content = content;
             this.Time = DateTime.Now;
             this.Receivers = new HashSet<ChatUser>();
-        }
-
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            info.AddValue(nameof(Time), this.Time);
-            info.AddValue(nameof(Content), this.Content);
-            info.AddValue(nameof(Author), this.Author);
-            info.AddValue(nameof(MessageTargets), this.MessageTargets);
-            info.AddValue(nameof(MessageType), this.MessageType);
-            info.AddValue(nameof(Receivers), this.Receivers);
-        }
-
-        public ChatMessage(SerializationInfo info, StreamingContext context)
-        {
-            Time = (DateTime)info.GetValue(nameof(Time), typeof(DateTime));
-            Content = (string)info.GetString(nameof(Content));
-            Author = (ChatUser)info.GetValue(nameof(Author), typeof(ChatUser));
-            Receivers = (HashSet<ChatUser>)info.GetValue(nameof(Receivers), typeof(HashSet<ChatUser>));
-            MessageType = (ChatMessageType)info.GetValue(nameof(MessageType), typeof(ChatMessageType));
         }
 
         public override string ToString()
